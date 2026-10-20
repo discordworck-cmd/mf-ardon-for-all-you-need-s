@@ -1,0 +1,2 @@
+# mf-ardon-for-all-you-need-s
+MF Ardon finds the values at which all your conditions are met and the desired result is reached. In a 500-participant economic simulation, it beat PPO (600K steps, 3 seeds): profit +$12.3M vs +$2.3M, in about 1 second vs 20 minutes. Use cases: pricing, inventory, drone calibration, audio cleaning, trajectories. Free key: telegram @Toxabek.
