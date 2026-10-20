@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MF Ardon — расчет цен и товарных матриц</title>
+<style>
+  :root {
+    --bg: #FFFFFF;
+    --surface: #F8F9FC;
+    --ink: #202124;
+    --muted: #5F6368;
+    --line: #DADCE0;
+    --blue: #1A73E8;
+    --blue-dark: #174EA6;
+    --blue-soft: #E8F0FE;
+    color-scheme: light;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Google Sans", "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.6;
+  }
+  header {
+    border-bottom: 1px solid var(--line);
+    position: sticky; top: 0; background: rgba(255,255,255,0.96); z-index: 10;
+  }
+  .nav {
+    max-width: 1040px; margin: 0 auto; padding: 16px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo { font-weight: 600; font-size: 20px; color: var(--ink); text-decoration: none; }
+  .logo span { color: var(--blue); }
+  .nav a.link { color: var(--muted); text-decoration: none; font-size: 15px; margin-left: 24px; }
+  .nav a.link:hover { color: var(--blue); }
+  main { max-width: 1040px; margin: 0 auto; padding: 0 24px 96px; }
+  .hero { padding: 88px 0 64px; max-width: 760px; }
+  .eyebrow { color: var(--blue); font-size: 15px; font-weight: 500; margin: 0 0 16px; }
+  h1 { font-size: 56px; line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 24px; font-weight: 500; }
+  h2 { font-size: 32px; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 16px; font-weight: 500; }
+  h3 { font-size: 20px; margin: 0 0 8px; font-weight: 500; }
+  p { font-size: 17px; margin: 0 0 16px; }
+  .lead { font-size: 21px; color: var(--muted); margin: 0 0 32px; }
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  .muted { color: var(--muted); font-size: 15px; }
+  .btn {
+    display: inline-block; margin: 0 12px 12px 0; padding: 12px 24px; border-radius: 999px;
+    background: var(--blue); color: #FFFFFF; text-decoration: none; font-weight: 500; font-size: 15px;
+  }
+  .btn:hover { background: var(--blue-dark); }
+  .btn.outline { background: #FFFFFF; color: var(--blue); border: 1px solid var(--line); }
+  .btn.outline:hover { background: var(--blue-soft); }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .card {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 16px; padding: 28px;
+  }
+  .card.tint { background: var(--surface); border-color: transparent; }
+  .card.accent { border-color: var(--blue); background: var(--blue-soft); }
+  .big { font-size: 56px; color: var(--blue); font-weight: 500; line-height: 1; margin: 0 0 8px; }
+  .mono, code, pre { font-family: "Roboto Mono", ui-monospace, "SF Mono", Menlo, monospace; }
+  table { width: 100%; border-collapse: collapse; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 16px 18px; border-bottom: 1px solid var(--line); font-size: 16px; }
+  th { color: var(--muted); font-weight: 500; background: var(--surface); }
+  tr:last-child td { border-bottom: none; }
+  td.hl { color: var(--blue); font-weight: 500; }
+  .tag {
+    display: inline-block; font-size: 14px; color: var(--blue-dark); background: var(--blue-soft);
+    border-radius: 999px; padding: 6px 14px; margin: 0 8px 8px 0;
+  }
+  pre {
+    overflow-x: auto; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px; font-size: 14px; margin: 16px 0 0;
+  }
+  .note { background: var(--surface); border-left: 4px solid var(--blue); border-radius: 8px; padding: 16px 20px; color: var(--muted); font-size: 15px; }
+  footer { border-top: 1px solid var(--line); padding: 32px 0; color: var(--muted); font-size: 14px; }
+  @media (max-width: 760px) {
+    h1 { font-size: 40px; } h2 { font-size: 26px; }
+    .grid, .grid3 { grid-template-columns: 1fr; }
+    .nav a.link { display: none; }
+    .hero { padding: 56px 0 40px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="logo" href="#">MF <span>Ardon</span></a>
+    <nav>
+      <a class="link" href="#how">Как работает</a>
+      <a class="link" href="#benchmark">Тест</a>
+      <a class="link" href="#start">Начать</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <p class="eyebrow">SDK · версия 1.2</p>
+    <h1>Цены и остатки, которые считаются за секунды</h1>
+    <p class="lead">MF Ardon — математическое ядро для расчета цен, остатков и товарных матриц. Оно вычисляет равновесие напрямую, а не перебирает варианты, поэтому там, где классическим подходам нужны минуты, результат приходит за секунду.</p>
+    <a class="btn" href="#contacts" id="get-key">Получить ключ</a>
+    <a class="btn outline" href="#benchmark">Смотреть тест</a>
+    <div id="contacts" class="card accent" hidden style="margin-top: 24px; max-width: 480px;">
+      <h3 style="color: var(--blue-dark);">Свяжитесь с нами</h3>
+      <p style="margin:0 0 8px;">Telegram: <a href="https://t.me/Toxabek" style="color: var(--blue);">@Toxabek</a></p>
+      <p style="margin:0;">Телефон: <a href="tel:+996505063104" style="color: var(--blue);">+996 0506 310 444</a></p>
+    </div>
+  </div>
+
+  <section id="how">
+    <h2>Что это такое</h2>
+    <p>Представьте магазин с тысячами товаров. Скидка на один товар влияет на продажи соседних. Чтобы найти цены, при которых прибыль максимальна, нужно учесть все эти связи сразу. На каталоге в 150 000 позиций таких связей более 22 миллиардов.</p>
+    <p>MF Ardon решает задачу математически: вычисляет равновесие Курно и граф перекрестного спроса за один проход. Цены можно пересчитывать часто, а не раз в неделю.</p>
+
+    <div class="grid" style="margin-top: 40px;">
+      <div class="card tint">
+        <h3>Таблицы и правила</h3>
+        <p class="muted" style="margin:0;">Правила для каждого товара быстро становятся неуправляемыми. Скидка на одну позицию съедает маржу соседней.</p>
+      </div>
+      <div class="card tint">
+        <h3>Нейросети и RL</h3>
+        <p class="muted" style="margin:0;">Нужны GPU-кластеры и долгое обучение, а решения трудно проверить и объяснить.</p>
+      </div>
+      <div class="card accent" style="grid-column: span 2;">
+        <h3 style="color: var(--blue-dark);">MF Ardon</h3>
+        <p style="margin:0;">Детерминированный расчет на обычном CPU. Одинаковые входные данные дают одинаковый результат, и каждый шаг можно проверить.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="benchmark">
+    <h2>Тест на сложной задаче</h2>
+    <p class="muted" style="margin-bottom: 24px;">Экономическая симуляция: 500 участников с разным капиталом, сезонность, тренды и меняющиеся предпочтения. Сравнение с алгоритмом PPO (обучение с подкреплением).</p>
+
+    <table>
+      <thead>
+        <tr><th>Подход</th><th>Прибыль</th><th>Время расчета</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>PPO</td><td class="mono">+2 306 182 $</td><td class="mono">20.1 мин</td></tr>
+        <tr><td class="hl">MF Ardon 1.2</td><td class="mono hl">+12 304 398 $</td><td class="mono hl">≈ 1 с</td></tr>
+      </tbody>
+    </table>
+
+    <div class="grid3" style="margin-top: 24px;">
+      <div class="card">
+        <p class="big">≈ 5.3×</p>
+        <p class="muted" style="margin:0;">больше прибыли в этом тесте</p>
+      </div>
+      <div class="card">
+        <p class="big">≈ 1200×</p>
+        <p class="muted" style="margin:0;">быстрее расчета</p>
+      </div>
+      <div class="card">
+        <p class="big">0 GPU</p>
+        <p class="muted" style="margin:0;">расчет идет на обычном CPU</p>
+      </div>
+    </div>
+    <p class="muted" style="margin-top: 16px;">Результат одного прогона на описанной симуляции. Условия, параметры и код теста будут опубликованы в репозитории.</p>
+  </section>
+
+  <section>
+    <h2>Почему это быстро</h2>
+    <p>MF Ardon не обучает модель и не перебирает варианты. Он вычисляет индексы ценовых эффектов (ctrl, cost, flow и другие) и решает задачу аналитически. Ядро написано на C / C++17.</p>
+  </section>
+
+  <section>
+    <h2>Что можно считать</h2>
+    <p>Система принимает табличные и потоковые данные. Вы описываете нужный результат, а ядро выполняет расчеты.</p>
+    <p style="margin-top: 20px;">
+      <span class="tag">Цены и товары</span>
+      <span class="tag">Склады и остатки</span>
+      <span class="tag">Калибровка моторов дронов</span>
+      <span class="tag">Распознавание</span>
+      <span class="tag">Ракеты и траектории</span>
+      <span class="tag">Звук и музыка</span>
+    </p>
+  </section>
+
+  <section id="start">
+    <h2>Как начать</h2>
+    <div class="grid3">
+      <div class="card">
+        <h3>1. Получите ключ</h3>
+        <p class="muted" style="margin:0 0 16px;">Частным лицам — бесплатно на 1 месяц. Компаниям — на 3 месяца, с активной поддержкой.</p>
+        <a class="btn" href="#contacts" data-show-contacts>Создать ключ</a>
+      </div>
+      <div class="card">
+        <h3>2. Установите SDK</h3>
+        <p class="muted" style="margin:0;">Подключение занимает несколько строк кода.</p>
+        <pre><code>from ardon import Client
+
+client = Client(api_key="YOUR_KEY")
+result = client.recommend(data)</code></pre>
+      </div>
+      <div class="card">
+        <h3>3. Проверьте на своих данных</h3>
+        <p class="muted" style="margin:0;">Отправьте обезличенную выгрузку и сравните результат с текущим расчетом. Названия товаров остаются у вас.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Открыто для сообщества</h2>
+    <p>Мы хотим, чтобы на MF Ardon строили свои продукты. Помогаем с кодом, применением и поиском клиентов. Если задача упирается в расчет, напишите нам, и разберем ее вместе.</p>
+    <a class="btn" href="#">Написать нам</a>
+    <a class="btn outline" href="#">Репозиторий на GitHub</a>
+  </section>
+
+  <section>
+    <p class="note">Цифры получены в одной симуляции и на одном наборе данных. Результаты на ваших данных могут отличаться, поэтому сначала проверьте на своей выгрузке.</p>
+  </section>
+
+</main>
+
+<footer>
+  <div style="max-width: 1040px; margin: 0 auto; padding: 0 24px;">© MF Ardon</div>
+</footer>
+
+<script>
+  document.querySelectorAll('#get-key, [data-show-contacts]').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      var box = document.getElementById('contacts');
+      box.hidden = false;
+      box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  });
+</script>
+
+</body>
+</html>
